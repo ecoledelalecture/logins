@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Règles pour la collection "users"
+    match /users/{userId} {
+      // Autoriser la lecture et l'écriture uniquement si l'utilisateur est authentifié
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Règles pour la collection "publicData"
+    match /publicData/{document=**} {
+      // Autoriser la lecture de toutes les données publiques
+      allow read: if true;
+      // Interdire l'écriture dans les données publiques
+      allow write: if false;
+    }
+    
+    // Règles pour la collection "articles"
+    match /articles/{articleId} {
+      // Autoriser la création d'articles uniquement si les données sont valides
+      allow create: if request.resource.data.keys().hasAll(['title', 'content']) &&
+                    request.resource.data.title is string &&
+                    request.resource.data.content is string;
+      // Autoriser la lecture de tous les articles
+      allow read: if true;
+      // Autoriser uniquement les utilisateurs authentifiés à mettre à jour ou supprimer leurs propres articles
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+    }
+  }
+}
+
